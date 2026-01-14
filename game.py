@@ -1,37 +1,41 @@
-from pynput import keyboard
 import time
+<<<<<<< HEAD
 from player import Player
 from npc import NPC
 from graphics_engine import GraphicsEngine
 from game_engine import GameEngine 
 # pip install pynput
+=======
+from pynput import keyboard
+>>>>>>> 3fa0687e0cb0175fcde99aab7b13e4c0cdd66479
 
 class KBPoller:
     def on_press(self, key):
-        try:
-            ch = key.char.lower()
-            self.pressed.add(ch)
-        except AttributeError:
-            pass
+        if hasattr(key, 'char') and key.char:
+            self.pressed.add(key.char.lower())
+        else:
+            self.pressed.add(key)
 
     def on_release(self, key):
-        try:
-            ch = key.char.lower()
-            self.pressed.remove(ch)
-        except AttributeError:
-            pass
+        if hasattr(key, 'char') and key.char:
+            self.pressed.discard(key.char.lower())
+        else:
+            self.pressed.discard(key)
 
     def __init__(self):
         self.pressed = set()
+        keyboard.Listener(
+            on_press=self.on_press,
+            on_release=self.on_release
+        ).start()
 
-        listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        listener.start()
 
 running = True
 
-player_x = 10
-player_y = 10
+x_max = 20
+y_max = 10
 
+<<<<<<< HEAD
 # NPC (position)
 npc_x = 20
 npc_y = 20
@@ -42,37 +46,57 @@ x_min = 0
 x_max = 100
 y_min = 0
 y_max = 100
+=======
+player_x = 0
+player_y = 0
+>>>>>>> 3fa0687e0cb0175fcde99aab7b13e4c0cdd66479
 
-kb = KBPoller()
+npc_x = 5
+npc_y = 3
+npc_dx = 1
+npc_dy = 2
 
-def scan_keys():
-    return kb.pressed
 
 def render_state():
+<<<<<<< HEAD
     print("player is at:", player_x, player_y , "| npc is at:", npc_x, npc_y)
+=======
+    print(
+        f"\rPlayer: ({player_x},{player_y}) | NPC: ({npc_x},{npc_y})",
+        end=""
+    )
+>>>>>>> 3fa0687e0cb0175fcde99aab7b13e4c0cdd66479
 
-def update_state(keys):
+
+def update_player(poller):
     global player_x, player_y, running
 
-    if "a" in keys:
-        player_x -= 1
-    if "d" in keys:
-        player_x += 1
-    if "w" in keys:
-        player_y -= 1
-    if "s" in keys:
+    if 'w' in poller.pressed and player_y < y_max - 1:
         player_y += 1
-    if "q" in keys:
+    if 's' in poller.pressed and player_y > 0:
+        player_y -= 1
+    if 'a' in poller.pressed and player_x > 0:
+        player_x -= 1
+    if 'd' in poller.pressed and player_x < x_max - 1:
+        player_x += 1
+    if keyboard.Key.esc in poller.pressed:
         running = False
 
-    if player_x < x_min:
-        player_x = x_min
-    if player_x > x_max:
-        player_x = x_max
-    if player_y < y_min:
-        player_y = y_min
-    if player_y > y_max:
-        player_y = y_max
+
+def update_npc():
+    global npc_x, npc_y, npc_dx, npc_dy
+
+    npc_x += npc_dx
+    npc_y += npc_dy
+
+    if npc_x >= x_max - 1 or npc_x <= 0:
+        npc_dx *= -1
+
+    if npc_y >= y_max - 1 or npc_y <= 0:
+        npc_dy *= -1
+
+
+poller = KBPoller()
 
 def update_npc():
     global npc_x, npc_y, npc_vx, npc_vy
@@ -98,14 +122,15 @@ def update_npc():
         npc_vy = -npc_vy
         
 while running:
-    # read/check for user actions (input)
-    # update game state (physics, AI, etc)
-    # render game state (graphics)
-
+    update_player(poller)
+    update_npc()
     render_state()
+<<<<<<< HEAD
     keys = scan_keys()
 
     update_state(keys)
     update_npc()
     
+=======
+>>>>>>> 3fa0687e0cb0175fcde99aab7b13e4c0cdd66479
     time.sleep(0.1)
