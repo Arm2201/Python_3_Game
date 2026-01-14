@@ -16,7 +16,6 @@ class Player:
         if "s" in keys:
             self.y += self.speed
 
-        # clamp to screen
         self.x = max(x_min, min(self.x, x_max))
         self.y = max(y_min, min(self.y, y_max))
 

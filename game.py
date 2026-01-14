@@ -32,11 +32,10 @@ running = True
 player_x = 10
 player_y = 10
 
-# NPC (position)
 npc_x = 20
 npc_y = 20
-npc_vx = 1 # moves +1 in x direction each frame
-npc_vy = 2 # moves +2 in y direction each frame
+npc_vx = 1 
+npc_vy = 2 
 
 x_min = 0
 x_max = 100
@@ -77,19 +76,16 @@ def update_state(keys):
 def update_npc():
     global npc_x, npc_y, npc_vx, npc_vy
     
-    # to move npc
     npc_x += npc_vx
     npc_y += npc_vy
     
-    # Bounce on left/right
     if npc_x < x_min:
         npc_x = x_min
         npc_vx = -npc_vx
     elif npc_x > x_max:
         npc_x = x_max
         npc_vx = -npc_vx
-        
-    # Bounce on top/bottom
+    
     if npc_y < y_min:
         npc_y = y_min
         npc_vy = -npc_vy
