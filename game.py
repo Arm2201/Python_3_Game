@@ -1,5 +1,9 @@
 from pynput import keyboard
 import time
+from player import Player
+from npc import NPC
+from graphics_engine import GraphicsEngine
+from game_engine import GameEngine 
 # pip install pynput
 
 class KBPoller:
