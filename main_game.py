@@ -12,6 +12,9 @@ def main():
     player = Player(x=10, y=10, speed=1)
     npcs = [
         NPC(x=20, y=10, vx=1, vy=2),
+        NPC(x = 5, y = 5, vx = 2, vy = 1),
+        NPC(x = 30, y = 15, vx = 1, vy = -1)
+        NPC(x = 10, y = 3, vx = -1, vy = -1)
     ]
 
     game = GameEngine(player, npcs, gfx)
