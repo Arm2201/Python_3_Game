@@ -3,7 +3,7 @@ import time
 from player import Player
 from npc import NPC
 from graphics_engine import GraphicsEngine
-from game_engine import GameEngine 
+from game_engine import GameEngine
 # pip install pynput
 
 class KBPoller:
@@ -34,8 +34,8 @@ player_y = 10
 
 npc_x = 20
 npc_y = 20
-npc_vx = 1 
-npc_vy = 2 
+npc_vx = 1
+npc_vy = 2
 
 x_min = 0
 x_max = 100
@@ -75,24 +75,24 @@ def update_state(keys):
 
 def update_npc():
     global npc_x, npc_y, npc_vx, npc_vy
-    
+
     npc_x += npc_vx
     npc_y += npc_vy
-    
+
     if npc_x < x_min:
         npc_x = x_min
         npc_vx = -npc_vx
     elif npc_x > x_max:
         npc_x = x_max
         npc_vx = -npc_vx
-    
+
     if npc_y < y_min:
         npc_y = y_min
         npc_vy = -npc_vy
     elif npc_y > y_max:
         npc_y = y_max
         npc_vy = -npc_vy
-        
+
 while running:
     # read/check for user actions (input)
     # update game state (physics, AI, etc)
@@ -103,5 +103,5 @@ while running:
 
     update_state(keys)
     update_npc()
-    
+
     time.sleep(0.1)
