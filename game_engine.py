@@ -1,32 +1,81 @@
 # Written by Captain
 # Edited by TK on 2024-06-15
 # Description: Game engine class
-
+import math
+import random
 import pygame
-import time
+
+from npc import NPC
+from bullets import Bullet
+
+def circles_collide(x1, y1, r1, x2, y2, r2) -> bool:
+    dx = x1 - x2
+    dy = y1 - y2
+    return (dx*dx + dy*dy) <= (r1 + r2) * (r1 + r2)
+
 class GameEngine:
-    def __init__(self, player, npcs, graphics):
+    def __init__(self, player, graphics):
         self.player = player
-        self.npcs = npcs
-        self.graphics = graphics
+        self.gfx = graphics
+
         self.running = True
-        
-        self.grid_w = graphics.grid_w
-        self.grid_h = graphics.grid_h
-        
-    def handle_events_and_input(self) -> None:
-        # close the window
+
+        self.npcs = []
+        self.bullets = []
+
+        # NPC auto-spawn
+        self.spawn_timer = 0.0
+        self.spawn_every = 1.5  # seconds
+
+        # Fire control
+        self.fire_cooldown = 0.0
+        self.fire_rate = 0.18  # seconds per shot
+
+        # World size (pixels)
+        self.world_w = graphics.width
+        self.world_h = graphics.height
+
+        # start with some NPCs
+        for _ in range(5):
+            self.spawn_npc_random()
+
+    def spawn_npc_random(self):
+        x = random.randint(20, self.world_w - 20)
+        y = random.randint(20, self.world_h - 20)
+        self.npcs.append(NPC.random_spawn(x, y))
+
+    def spawn_npc_at(self, x: int, y: int):
+        # clamp spawn inside screen
+        x = max(20, min(x, self.world_w - 20))
+        y = max(20, min(y, self.world_h - 20))
+        self.npcs.append(NPC.random_spawn(x, y))
+
+    def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-                
+
+            # Spawn NPC on mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mx, my = event.pos
+                self.spawn_npc_at(mx, my)
+
+    def handle_input(self, dt: float):
         keys = pygame.key.get_pressed()
-        
-        # quit
+
         if keys[pygame.K_ESCAPE]:
             self.running = False
-            
-        # Movement 
+
+        # Orientation (rotate)
+        rot_dir = 0
+        if keys[pygame.K_LEFT]:
+            rot_dir -= 1
+        if keys[pygame.K_RIGHT]:
+            rot_dir += 1
+        if rot_dir != 0:
+            self.player.rotate(rot_dir, dt)
+
+        # Movement (WASD)
         dx = 0
         dy = 0
         if keys[pygame.K_a]:
@@ -38,19 +87,70 @@ class GameEngine:
         if keys[pygame.K_s]:
             dy += 1
 
+        # Normalize diagonal movement so it's not faster
         if dx != 0 or dy != 0:
-            self.player.move(dx, dy, self.grid_w, self.grid_h)
+            length = math.hypot(dx, dy)
+            dx /= length
+            dy /= length
+            self.player.move(dx, dy, dt, self.world_w, self.world_h)
 
-    def update(self, dt: float) -> None:
-        # NPC movement and bounce
+        # Fire (space)
+        self.fire_cooldown = max(0.0, self.fire_cooldown - dt)
+        if keys[pygame.K_SPACE] and self.fire_cooldown <= 0.0:
+            self.bullets.append(Bullet.from_player(self.player))
+            self.fire_cooldown = self.fire_rate
+
+    def update(self, dt):
+        # Auto-spawn NPCs
+        self.spawn_timer += dt
+        if self.spawn_timer >= self.spawn_every:
+            self.spawn_timer = 0.0
+            self.spawn_npc_random()
+
+        # Update NPCs
         for npc in self.npcs:
-            npc.update(self.grid_w, self.grid_h)
+            npc.update(dt, self.world_w, self.world_h)
 
-    def run(self) -> None:
+        # Update bullets + remove dead ones
+        alive_bullets = []
+        for b in self.bullets:
+            b.update(dt)
+            if not b.is_dead(self.world_w, self.world_h):
+                alive_bullets.append(b)
+        self.bullets = alive_bullets
+
+        # Bullet-NPC collision (remove both)
+        remaining_npcs = []
+        used_bullets = set()
+
+        for i, npc in enumerate(self.npcs):
+            hit = False
+            for j, b in enumerate(self.bullets):
+                if j in used_bullets:
+                    continue
+                if circles_collide(npc.x, npc.y, npc.radius, b.x, b.y, b.radius):
+                    used_bullets.add(j)
+                    hit = True
+                    break
+            if not hit:
+                remaining_npcs.append(npc)
+
+        # keep bullets that did not hit
+        self.bullets = [b for idx, b in enumerate(self.bullets) if idx not in used_bullets]
+        self.npcs = remaining_npcs
+
+    def run(self):
         while self.running:
-            dt = self.graphics.tick()
-            self.handle_events_and_input()
+            dt = self.gfx.tick()
+            self.handle_events()
+            self.handle_input(dt)
             self.update(dt)
-            self.graphics.render(self.player, self.npcs)
+
+            hud = [
+                "WASD move | LEFT/RIGHT rotate | SPACE fire | ESC quit",
+                f"NPCs: {len(self.npcs)}   Bullets: {len(self.bullets)}",
+                "Left click: spawn NPC",
+            ]
+            self.gfx.render(self.player, self.npcs, self.bullets, hud)
 
         pygame.quit()

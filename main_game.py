@@ -1,23 +1,19 @@
-from player import Player
+# Author: TK
+# Date: Edited 2026-01-16
+# Description: Main game
 from npc import NPC
+from player import Player
 from graphics_engine import GraphicsEngine
 from game_engine import GameEngine
 
 def main():
-    grid_w = 40
-    grid_h = 20
+    width = 1000
+    height = 600
 
-    gfx = GraphicsEngine(grid_w, grid_h, cell_size=32, fps=60)
+    gfx = GraphicsEngine(width, height, fps=60)
+    player = Player(x=width/2, y=height/2, speed=260.0)
 
-    player = Player(x=10, y=10, speed=1)
-    npcs = [
-        NPC(x=20, y=10, vx=1, vy=2),
-        NPC(x = 5, y = 5, vx = 2, vy = 1),
-        NPC(x = 30, y = 15, vx = 1, vy = -1),
-        NPC(x = 10, y = 3, vx = -1, vy = -1)
-    ]
-
-    game = GameEngine(player, npcs, gfx)
+    game = GameEngine(player, gfx)
     game.run()
 
 if __name__ == "__main__":

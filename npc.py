@@ -1,32 +1,38 @@
 # Edited by TK on 2024-06-15
 # Wriiten by Arm
 # Description: NPC class
-
+import random
 class NPC:
-    def __init__(self, x: int, y: int, vx: int = 1, vy: int = 1, char: str = "N"):
+    def __init__(self, x: float, y: float, vx: float, vy: float, radius: int = 12):
         self.x = x
         self.y = y
         self.vx = vx
         self.vy = vy
-        self.char = char
+        self.radius = radius
+        
+    def random_spawn(x: float, y: float):
+        # random velocity 
+        vx = random.choice([-1, 1]) * random.uniform(80, 160)
+        vy = random.choice([-1, 1]) * random.uniform(80, 160)
+        return NPC(x, y, vx, vy)
 
-    def update(self, grid_w: int, grid_h: int) -> None:
-        self.x += self.vx
-        self.y += self.vy
+    def update(self, dt, world_w: int, world_h: int) -> None:
+        self.x += self.vx * dt
+        self.y += self.vy * dt
 
+        # Bounce on walls
         # Bounce X
-        if self.x < 0:
-            self.x = 0
+        if self.x <= self.radius:
+            self.x = self.radius
             self.vx *= -1
-        elif self.x >= grid_w - 1:
-            self.x = grid_w - 1
+        elif self.x >= world_w - self.radius:
+            self.x = world_w - self.radius
             self.vx *= -1
             
         # Bounce Y
-        if self.y <= 0:
-            self.y = 0
+        if self.y <= self.radius:
+            self.y = self.radius
             self.vy *= -1
-        elif self.y >= grid_h - 1:
-            self.y = grid_h - 1
+        elif self.y >= world_h - self.radius:
+            self.y = world_h - self.radius
             self.vy *= -1
-
