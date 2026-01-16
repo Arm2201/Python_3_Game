@@ -22,6 +22,12 @@ class KBPoller:
             self.pressed.add("s")
         if keys[pygame.K_q]:
             self.pressed.add("q")
+        if keys[pygame.K_LEFT]:
+            self.pressed.add("left")
+        if keys[pygame.K_RIGHT]:
+            self.pressed.add("right")
+        if keys[pygame.K_SPACE]:
+            self.pressed.add("fire")
 
 
 class InputController:
@@ -56,11 +62,19 @@ class Player:
         self.y = y
         self.speed_x = speed_x
         self.speed_y = speed_y
+        self.angle = 0.0
+        self.rot_speed = 3.0
 
     def move(self, left, right, up, down, game_field, dt):
         self.x += self.speed_x * dt * (right - left)
         self.y += self.speed_y * dt * (down - up)
         self.x, self.y, _, _ = game_field.clamp(self.x, self.y)
+
+    def rotate(self, left, right, dt):
+        self.angle += self.rot_speed * dt * (right - left)
+
+    def fire(self):
+        return Bullet(self.x, self.y, self.angle)
 
 
 class NPC:
@@ -82,6 +96,19 @@ class NPC:
             self.speed_y = -self.speed_y
 
 
+class Bullet:
+    def __init__(self, x, y, angle):
+        self.x = x
+        self.y = y
+        self.speed = 600
+        self.vx = math.cos(angle) * self.speed
+        self.vy = math.sin(angle) * self.speed
+
+    def move(self, dt):
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+
+
 def resolve_collision(a, b, radius):
     dx = a.x - b.x
     dy = a.y - b.y
@@ -99,11 +126,6 @@ def resolve_collision(a, b, radius):
         a.y += ny * overlap / 2
         b.x -= nx * overlap / 2
         b.y -= ny * overlap / 2
-
-        a.speed_x += nx * random.randint(-80, 80)
-        a.speed_y += ny * random.randint(-80, 80)
-        b.speed_x -= nx * random.randint(-80, 80)
-        b.speed_y -= ny * random.randint(-80, 80)
 
 
 #GRAPHICS (pygame)
@@ -130,6 +152,33 @@ class GraphicsEngine:
             radius
         )
 
+    def draw_player(self, player):
+        pygame.draw.circle(
+            self.screen,
+            "red",
+            (int(player.x), int(player.y)),
+            40
+        )
+
+        end_x = player.x + math.cos(player.angle) * 50
+        end_y = player.y + math.sin(player.angle) * 50
+
+        pygame.draw.line(
+            self.screen,
+            "white",
+            (player.x, player.y),
+            (end_x, end_y),
+            4
+        )
+
+    def draw_bullet(self, bullet):
+        pygame.draw.circle(
+            self.screen,
+            "yellow",
+            (int(bullet.x), int(bullet.y)),
+            6
+        )
+
     def show_frame(self):
         pygame.display.flip()
         self.dt = self.clock.tick(60) / 1000
@@ -143,6 +192,7 @@ class GameEngine:
         self.game_field = game_field
         self.player = player
         self.npcs = npc
+        self.bullets = []
         self.running = True
 
     def update_state(self, pressed_keys):
@@ -158,22 +208,41 @@ class GameEngine:
             self.graph_engine.dt,
         )
 
-        for npc in self.npcs:
-            resolve_collision(self.player, npc, 40)
+        self.player.rotate(
+            "left" in pressed_keys,
+            "right" in pressed_keys,
+            self.graph_engine.dt,
+        )
 
-        for i in range(len(self.npcs)):
-            for j in range(i + 1, len(self.npcs)):
-                resolve_collision(self.npcs[i], self.npcs[j], 40)
+        if "fire" in pressed_keys:
+            self.bullets.append(self.player.fire())
+
+        for bullet in self.bullets[:]:
+            bullet.move(self.graph_engine.dt)
+
+            if bullet.x < 0 or bullet.x > 1280 or bullet.y < 0 or bullet.y > 720:
+                self.bullets.remove(bullet)
+
+        for bullet in self.bullets[:]:
+            for npc in self.npcs[:]:
+                if math.hypot(bullet.x - npc.x, bullet.y - npc.y) < 40:
+                    self.bullets.remove(bullet)
+                    self.npcs.remove(npc)
+                    break
 
         if "q" in pressed_keys:
             self.running = False
 
     def render_state(self):
         self.graph_engine.start_frame()
-        self.graph_engine.render_circle(self.player.x, self.player.y, 40, "red")
+
+        self.graph_engine.draw_player(self.player)
 
         for npc in self.npcs:
             self.graph_engine.render_circle(npc.x, npc.y, 40, "blue")
+
+        for bullet in self.bullets:
+            self.graph_engine.draw_bullet(bullet)
 
         self.graph_engine.show_frame()
 

@@ -103,5 +103,10 @@ while running:
 
     update_state(keys)
     update_npc()
+<<<<<<< HEAD
 
     time.sleep(0.1)
+=======
+    
+    time.sleep(0.1)
+>>>>>>> ec35cc4d9528b74304a9678ec70a1570f5f278c1
