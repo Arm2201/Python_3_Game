@@ -1,5 +1,5 @@
 # Author: TK
-# Date: Edited 2026-01-15
+# Date: Edited 2026-01-18
 # Description: Graphic engine class
 import math
 import pygame

@@ -6,8 +6,7 @@ import time
 from player import Player
 from Python_3_Game.npc import NPC
 from graphics_engine import GraphicsEngine
-from game_engine import GameEngine 
-# pip install pynput
+from game_engine import GameEngine
 
 class KBPoller:
     def on_press(self, key):
