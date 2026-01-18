@@ -111,5 +111,5 @@ def choose_npc_class(score:int):
         spawn_classes = [SmallNPC, MediumNPC, LargeNPC]
         weights = [0.40, 0.35, 0.25]
         
-    return random.choice(spawn_classes, weights=weights, k=1)[0]
+    return random.choices(spawn_classes, weights=weights, k=1)[0]
 
