@@ -3,7 +3,9 @@
 # Description: Game engine class
 import random
 import pygame
+import math
 from npc import choose_npc_class
+from bullets import Bullet
 from score_system import ScoreSystem
 
 
