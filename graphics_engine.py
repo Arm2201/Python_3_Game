@@ -41,7 +41,25 @@ class GraphicsEngine:
         pygame.draw.polygon(self.screen, (60, 200, 60), [nose, left, right])
 
     def draw_npc(self, npc):
-        pygame.draw.circle(self.screen, (200, 60, 60), (int(npc.x), int(npc.y)), npc.radius)
+        # npc color from NPCBase inheritance
+        pygame.draw.circle(self.screen, npc.color, (int(npc.x), int(npc.y)), npc.radius)
+        
+        # if boss has >1 HP, draw a tiny HP bar to show HP.
+        if getattr(npc, "hp", 1) > 1:
+            w = npc.radius * 2
+            h = 7
+            x = int(npc.x - npc.radius)
+            y = int(npc.y - npc.radius - 12)
+            
+            # Background bar
+            pygame.draw.rect(self.screen, (60, 60, 60), pygame.Rect(x, y, w, h))
+            
+            # filled portion
+            hp = npc.hp
+            hpmax = npc.hp_max
+            filled = int(w * (hp / hpmax))
+            pygame.draw.rect(self.screen, (60, 220, 90), pygame.Rect(x, y, filled, h))
+
 
     def draw_bullet(self, bullet):
         pygame.draw.circle(self.screen, (220, 220, 80), (int(bullet.x), int(bullet.y)), bullet.radius)

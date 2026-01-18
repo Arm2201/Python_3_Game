@@ -1,7 +1,7 @@
 # Author: TK
 # Date: Edited 2026-01-16
 # Description: Main game
-from npc import NPC
+from Python_3_Game.npc import NPC
 from player import Player
 from graphics_engine import GraphicsEngine
 from game_engine import GameEngine

@@ -1,12 +1,11 @@
 # Written by Captain
 # Edited by TK on 2024-06-15
 # Description: Game engine class
-import math
 import random
 import pygame
+from npc import choose_npc_class
+from score_system import ScoreSystem
 
-from npc import NPC
-from bullets import Bullet
 
 def circles_collide(x1, y1, r1, x2, y2, r2) -> bool:
     dx = x1 - x2
@@ -17,6 +16,7 @@ class GameEngine:
     def __init__(self, player, graphics):
         self.player = player
         self.gfx = graphics
+        self.scoring = ScoreSystem(combo_window=1.25, streak_step=5, max_multiplier=6)
 
         self.running = True
 
@@ -40,15 +40,18 @@ class GameEngine:
             self.spawn_npc_random()
 
     def spawn_npc_random(self):
-        x = random.randint(20, self.world_w - 20)
-        y = random.randint(20, self.world_h - 20)
-        self.npcs.append(NPC.random_spawn(x, y))
+        x = random.randint(40, self.world_w - 40)
+        y = random.randint(40, self.world_h - 40)
+        
+        cls = choose_npc_class(self.scoring.score)
+        self.npcs.append(cls.spawn(x, y))
 
     def spawn_npc_at(self, x: int, y: int):
-        # clamp spawn inside screen
-        x = max(20, min(x, self.world_w - 20))
-        y = max(20, min(y, self.world_h - 20))
-        self.npcs.append(NPC.random_spawn(x, y))
+        x = max(40, min(x, self.world_w - 40))
+        y = max(40, min(y, self.world_h - 40))
+
+        cls = choose_npc_class(self.scoring.score)
+        self.npcs.apped(cls.spawn(x, y))
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -102,6 +105,8 @@ class GameEngine:
 
     def update(self, dt):
         # Auto-spawn NPCs
+        now = pygame.time.get_ticks() / 1000.0
+        self.scoring.update_time(now)
         self.spawn_timer += dt
         if self.spawn_timer >= self.spawn_every:
             self.spawn_timer = 0.0
@@ -123,16 +128,22 @@ class GameEngine:
         remaining_npcs = []
         used_bullets = set()
 
-        for i, npc in enumerate(self.npcs):
-            hit = False
+        for npc in self.npcs:
+            destroyed = False
             for j, b in enumerate(self.bullets):
                 if j in used_bullets:
                     continue
+                
                 if circles_collide(npc.x, npc.y, npc.radius, b.x, b.y, b.radius):
                     used_bullets.add(j)
-                    hit = True
+                    
+                    # reduce hp; only destroy if hp hits 0
+                    destroyed = npc.take_hit()
+                    if destroyed:
+                        self.scoring.on_hit(now, npc.points)
                     break
-            if not hit:
+                
+            if not destroyed:
                 remaining_npcs.append(npc)
 
         # keep bullets that did not hit
@@ -147,10 +158,13 @@ class GameEngine:
             self.update(dt)
 
             hud = [
-                "WASD move | LEFT/RIGHT rotate | SPACE fire | ESC quit",
+                "WASD move | LEFT/RIGHT rotate | SPACE fire | ESC to quit",
+                f"Score: {self.scoring.score}",
+                f"Streak: {self.scoring.streak}   Multi: x{self.scoring.multiplier()}",
                 f"NPCs: {len(self.npcs)}   Bullets: {len(self.bullets)}",
-                "Left click: spawn NPC",
+                "Small = 2  Medium = 4  Large = 8  Boss = 25 (multi-hit) | Left click spawns"
             ]
+            
             self.gfx.render(self.player, self.npcs, self.bullets, hud)
 
         pygame.quit()

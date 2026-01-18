@@ -4,7 +4,7 @@
 from pynput import keyboard
 import time
 from player import Player
-from npc import NPC
+from Python_3_Game.npc import NPC
 from graphics_engine import GraphicsEngine
 from game_engine import GameEngine 
 # pip install pynput
