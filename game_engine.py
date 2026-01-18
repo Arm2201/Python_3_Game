@@ -53,7 +53,7 @@ class GameEngine:
         y = max(40, min(y, self.world_h - 40))
 
         cls = choose_npc_class(self.scoring.score)
-        self.npcs.apped(cls.spawn(x, y))
+        self.npcs.append(cls.spawn(x, y))
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -140,7 +140,7 @@ class GameEngine:
                     used_bullets.add(j)
                     
                     # reduce hp; only destroy if hp hits 0
-                    destroyed = npc.take_hit()
+                    destroyed = npc.take_hits()
                     if destroyed:
                         self.scoring.on_hit(now, npc.points)
                     break
