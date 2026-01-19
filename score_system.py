@@ -26,6 +26,17 @@ class ScoreSystem:
         m = 1 + (self.streak // self.streak_step)
         return min(m, self.max_multiplier)
     
+    def combo_ratio(self, now: float) -> float:
+        """Returns 0..1 for the streak time bar.
+        1 means fresh combo time remaining, 0 means combo expired."""
+        if self.last_hit_time is None or self.streak <= 0:
+            return 0.0
+        elapsed = now - self.last_hit_time
+        remaining = self.combo_window
+        if remaining <= 0:
+            return 0.0
+        return max(0.0, min(1.0, remaining / self.combo_window))
+        
     def on_hit(self, now: float, base_points: int) -> int:
         # called whenever you successfully hit and destroy an NPC
         if self.last_hit_time is None or (now - self.last_hit_time) > self.combo_window:

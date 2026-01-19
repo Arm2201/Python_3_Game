@@ -3,6 +3,7 @@
 # Description: Graphic engine class
 import math
 import pygame
+from settings import BG, HUD_text, HUD_Dim, Bar_BG, Bar_fill, Bullet_color, HUD_Pad, HUD_Bar_w, HUD_Bar_h
 class GraphicsEngine:
     def __init__(self, width: int, height: int, fps: int = 60):
         pygame.init()
@@ -15,72 +16,93 @@ class GraphicsEngine:
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont(None, 24)
+        self.font_big = pygame.font.SysFont(None, 34)
 
     def tick(self) -> float:
         dt_ms = self.clock.tick(self.fps)
         return dt_ms / 1000.0
+    
+    def draw_bullet(self, b, ox, oy):
+        pygame.draw.circle(self.screen, Bullet_color, (int (b.x + ox), int(b.y + oy)), b.radius)
 
-    def draw_player(self, player):
-        # Draw a triangle pointing in player.angle
+    def draw_particle(self, p, ox, oy):
+        pygame.draw.circle(self.screen, p.color, (int(p.x + ox), int(p.y + oy)), p.radius)
+
+    def draw_npc(self, npc, ox, oy):
+        pygame.draw.circle(self.screen, npc.color, (int(npc.x + ox), int(npc.y + oy)), npc.radius)
+
+        # Optional HP bar for boss-like NPCs
+        if getattr(npc, "hp_max", 1) > 1:
+            w = npc.radius * 2
+            h = 6
+            x = int(npc.x + ox - npc.radius)
+            y = int(npc.y + oy - npc.radius - 12)
+            pygame.draw.rect(self.screen, Bar_BG, pygame.Rect(x, y, w, h))
+            filled = int(w * (npc.hp / npc.hp_max))
+            pygame.draw.rect(self.screen, Bar_fill, pygame.Rect(x, y, filled, h))
+
+    def draw_player(self, player, ox, oy):
+        import math
         fx = math.cos(player.angle)
         fy = math.sin(player.angle)
 
-        # triangle points
-        nose = (player.x + fx * player.radius, player.y + fy * player.radius)
-
-        # perpendicular vector for base width
+        nose = (player.x + ox + fx * player.radius, player.y + oy + fy * player.radius)
         px = -fy
         py = fx
         base_dist = player.radius * 0.75
 
-        left = (player.x - fx * (player.radius * 0.6) + px * base_dist,
-                player.y - fy * (player.radius * 0.6) + py * base_dist)
-        right = (player.x - fx * (player.radius * 0.6) - px * base_dist,
-                 player.y - fy * (player.radius * 0.6) - py * base_dist)
+        left = (player.x + ox - fx * (player.radius * 0.6) + px * base_dist,
+                player.y + oy - fy * (player.radius * 0.6) + py * base_dist)
+        right = (player.x + ox - fx * (player.radius * 0.6) - px * base_dist,
+                 player.y + oy - fy * (player.radius * 0.6) - py * base_dist)
 
         pygame.draw.polygon(self.screen, (60, 200, 60), [nose, left, right])
 
-    def draw_npc(self, npc):
-        # npc color from NPCBase inheritance
-        pygame.draw.circle(self.screen, npc.color, (int(npc.x), int(npc.y)), npc.radius)
-        
-        # if boss has >1 HP, draw a tiny HP bar to show HP.
-        if getattr(npc, "hp", 1) > 1:
-            w = npc.radius * 2
-            h = 7
-            x = int(npc.x - npc.radius)
-            y = int(npc.y - npc.radius - 12)
-            
-            # Background bar
-            pygame.draw.rect(self.screen, (60, 60, 60), pygame.Rect(x, y, w, h))
-            
-            # filled portion
-            hp = npc.hp
-            hpmax = npc.hp_max
-            filled = int(w * (hp / hpmax))
-            pygame.draw.rect(self.screen, (60, 220, 90), pygame.Rect(x, y, filled, h))
+    def draw_hud(self, score, streak, mult, combo_ratio, paused, npc_count):
+        x = HUD_Pad
+        y = HUD_Pad
 
+        title = self.font_big.render(f"Score: {score}", True, HUD_text)
+        self.screen.blit(title, (x, y))
+        y += 36
 
-    def draw_bullet(self, bullet):
-        pygame.draw.circle(self.screen, (220, 220, 80), (int(bullet.x), int(bullet.y)), bullet.radius)
+        line = self.font.render(f"Streak: {streak}   Mult: x{mult}   NPCs: {npc_count}", True, HUD_text)
+        self.screen.blit(line, (x, y))
+        y += 24
 
-    def render(self, player, npcs, bullets, hud_lines):
-        self.screen.fill((0, 0, 0))
+        # Combo timer bar
+        pygame.draw.rect(self.screen, Bar_BG, pygame.Rect(x, y, HUD_Bar_w, HUD_Bar_h))
+        fill_w = int(HUD_Bar_w * combo_ratio)
+        pygame.draw.rect(self.screen, Bar_fill, pygame.Rect(x, y, fill_w, HUD_Bar_h))
+        y += 18
 
-        # Draw bullets behind entities or in front — your call
+        hint = self.font.render("WASD move | LEFT/RIGHT rotate | SPACE fire | P pause | R restart | ESC quit", True, HUD_Dim)
+        self.screen.blit(hint, (x, y))
+
+        if paused:
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            self.screen.blit(overlay, (0, 0))
+            msg = self.font_big.render("PAUSED (Press P to resume)", True, HUD_text)
+            self.screen.blit(msg, (self.width // 2 - msg.get_width() // 2, self.height // 2 - 20))
+
+    def render(self, player, npcs, bullets, particles, hud_data, offset=(0, 0)):
+        ox, oy = offset
+
+        self.screen.fill(BG)
+
+        # Particles behind
+        for p in particles:
+            self.draw_particle(p, ox, oy)
+
         for b in bullets:
-            self.draw_bullet(b)
+            self.draw_bullet(b, ox, oy)
 
         for n in npcs:
-            self.draw_npc(n)
+            self.draw_npc(n, ox, oy)
 
-        self.draw_player(player)
+        self.draw_player(player, ox, oy)
 
-        # HUD
-        y = 8
-        for line in hud_lines:
-            surf = self.font.render(line, True, (220, 220, 220))
-            self.screen.blit(surf, (8, y))
-            y += 20
+        self.draw_hud(**hud_data)
 
         pygame.display.flip()

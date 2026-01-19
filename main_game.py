@@ -2,6 +2,7 @@
 # Date: Edited 2026-01-18
 # Description: Main game
 
+from settings import WIDTH, HEIGHT, FPS, Player_Speed
 from player import Player
 from graphics_engine import GraphicsEngine
 from game_engine import GameEngine
@@ -17,4 +18,4 @@ def main():
     game.run()
 
 if __name__ == "__main__":
-    main()
+    main()  

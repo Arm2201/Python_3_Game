@@ -1,8 +1,8 @@
 # Author: TK
-# Date: Edited 2026-01-16
+# Date: Edited 2026-01-18
 # Description: Bullet class for shooting
 import math
-
+from settings import Bullet_speed, bullet_Max_life, Bullet_radius
 class Bullet:
     def __init__(self, x: float, y: float, vx: float, vy: float):
         self.x = x
@@ -10,12 +10,12 @@ class Bullet:
         self.vx = vx
         self.vy = vy
         
-        self.radius = 4
+        self.radius = Bullet_radius
         self.lifetime = 0.0
-        self.max_lifetime = 2.5 # backup
+        self.max_lifetime = bullet_Max_life
         
     @staticmethod
-    def from_player(player, speed: float = 420.0):
+    def from_player(player):
         fx, fy = player.forward_vector()
         
         # spawn bullet in triangle
@@ -23,7 +23,7 @@ class Bullet:
         bx = player.x + fx * spawn_dist
         by = player.y + fy * spawn_dist
         
-        return Bullet(bx, by, fx * speed, fy * speed)
+        return Bullet(bx, by, fx * Bullet_speed, fy * Bullet_speed)
     
     def update(self, dt: float) -> None:
         self.x += self.vx * dt
