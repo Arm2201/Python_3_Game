@@ -25,8 +25,8 @@ class Player:
         self.x += dx * self.speed * dt
         self.y += dy * self.speed * dt
 
-        self.x = max(0, min(self.x, world_w - self.radius))
-        self.y = max(0, min(self.y, world_h - self.radius))
+        self.x = max(self.radius, min(self.x, world_w - self.radius))
+        self.y = max(self.radius, min(self.y, world_h - self.radius))
         
     def forward_vector(self):
         return math.cos(self.angle), math.sin(self.angle)

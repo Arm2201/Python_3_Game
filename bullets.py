@@ -25,6 +25,14 @@ class Bullet:
         
         return Bullet(bx, by, fx * Bullet_speed, fy * Bullet_speed)
     
+    @staticmethod
+    def from_net(d: dict):
+        """Build a bullet from a server snapshot dict"""
+        b = Bullet(float(d["x"]), float(d["y"]), float(d["vx"]), float(d["vy"]))
+        # so bullets don't disappear instantly on the client between snapshots
+        b.lifetime = 0.0
+        return b
+    
     def update(self, dt: float) -> None:
         self.x += self.vx * dt
         self.y += self.vy * dt

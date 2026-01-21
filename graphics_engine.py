@@ -41,8 +41,7 @@ class GraphicsEngine:
             filled = int(w * (npc.hp / npc.hp_max))
             pygame.draw.rect(self.screen, Bar_fill, pygame.Rect(x, y, filled, h))
 
-    def draw_player(self, player, ox, oy):
-        import math
+    def draw_player(self, player, ox, oy, color = (60, 200, 60)):
         fx = math.cos(player.angle)
         fy = math.sin(player.angle)
 
@@ -56,7 +55,7 @@ class GraphicsEngine:
         right = (player.x + ox - fx * (player.radius * 0.6) - px * base_dist,
                  player.y + oy - fy * (player.radius * 0.6) - py * base_dist)
 
-        pygame.draw.polygon(self.screen, (60, 200, 60), [nose, left, right])
+        pygame.draw.polygon(self.screen, color, [nose, left, right])
 
     def draw_hud(self, score, streak, mult, combo_ratio, paused, npc_count):
         x = HUD_Pad
@@ -86,7 +85,7 @@ class GraphicsEngine:
             msg = self.font_big.render("PAUSED (Press P to resume)", True, HUD_text)
             self.screen.blit(msg, (self.width // 2 - msg.get_width() // 2, self.height // 2 - 20))
 
-    def render(self, player, npcs, bullets, particles, hud_data, offset=(0, 0)):
+    def render(self, players, npcs, bullets, particles, hud_data, offset=(0, 0)):
         ox, oy = offset
 
         self.screen.fill(BG)
@@ -94,14 +93,16 @@ class GraphicsEngine:
         # Particles behind
         for p in particles:
             self.draw_particle(p, ox, oy)
-
+        
         for b in bullets:
             self.draw_bullet(b, ox, oy)
 
         for n in npcs:
             self.draw_npc(n, ox, oy)
 
-        self.draw_player(player, ox, oy)
+        for i, pl in enumerate(players):
+            col = (60, 200, 60) if i == 0 else (80, 160, 255)
+            self.draw_player(pl, ox, oy, color = col)
 
         self.draw_hud(**hud_data)
 

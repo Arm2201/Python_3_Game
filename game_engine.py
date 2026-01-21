@@ -12,6 +12,7 @@ from npc import choose_npc_class
 from bullets import Bullet
 from score_system import ScoreSystem
 from particles import spawn_hit_particles
+from RemotePlayer import RemotePlayer
 
 
 def circles_collide(x1, y1, r1, x2, y2, r2) -> bool:
@@ -20,9 +21,13 @@ def circles_collide(x1, y1, r1, x2, y2, r2) -> bool:
     return (dx*dx + dy*dy) <= (r1 + r2) * (r1 + r2)
 
 class GameEngine:
-    def __init__(self, player, graphics):
+    def __init__(self, player, graphics, net= None):
         self.player = player
         self.gfx = graphics
+        self.net = net is not None
+        self.online = net is not None
+        
+        self.remote_players = {} # pid -> RemotePlayer
 
         self.world_w = graphics.width
         self.world_h = graphics.height
@@ -52,6 +57,10 @@ class GameEngine:
         self.fire_cooldown = 0.0
         self.Fire_rate = Fire_rate
 
+        if not self.online:
+            for _ in range(Starting_NPCs):
+                self.spawn_npc_random()
+            
         # start with some NPCs
         for _ in range(Starting_NPCs):
             self.spawn_npc_random()
@@ -100,7 +109,7 @@ class GameEngine:
                     self.reset()
 
             # Spawn NPC on mouse click
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if (not self.online) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
                 self.spawn_npc_at(mx, my)
 
@@ -136,16 +145,50 @@ class GameEngine:
             length = math.hypot(dx, dy)
             dx /= length
             dy /= length
-            self.player.move(dx, dy, dt, self.world_w, self.world_h)
+        
+        shoot = keys[pygame.K_SPACE]
+        
+        if self.online:
+            # Online mode: do NOT mutate player/bullets here.
+            # send intent; server simulates.
+            # Angle can be derived from local player angle, but we can still update locally for responsiveness.
+            
+            if rot_dir != 0:
+                self.player.rotate(rot_dir, dt)
+                
+            self.net_send_input(
+                up = keys[pygame.K_w],
+                down = keys[pygame.K_s],
+                left = keys[pygame.K_a],
+                right = keys[pygame.K_d],
+                shoot = shoot,
+                angle = self.player.angle,
+            )
+            return
 
+        # Offline mode
+        
+        if rot_dir != 0:
+            self.player.rotate(rot_dir, dt)
+            
+        if dx != 0 or dy != 0:
+            self.player.move(dx, dy, dt, self.world_w, self.world_h)
+            
         # Fire (space)
         self.fire_cooldown = max(0.0, self.fire_cooldown - dt)
-        if keys[pygame.K_SPACE] and self.fire_cooldown <= 0.0:
+        if shoot and self.fire_cooldown <= 0.0:
+            
             self.bullets.append(Bullet.from_player(self.player))
             self.fire_cooldown = self.Fire_rate
 
     def update(self, dt):
         if self.paused:
+            return
+        
+        if self.online:
+            snap = self.net.get_lastest_snapshot()
+            if snap:
+                self.apply_snapshot(snap, dt)
             return
         
         
@@ -212,6 +255,33 @@ class GameEngine:
         self.bullets = [b for idx, b in enumerate(self.bullets) if idx not in used_bullets]
         self.npcs = remaining_npcs
 
+    def apply_snapshot(self, snap: dict, dt: float):
+        players = snap.get("Players", {})
+        my_id = self.net.player_id
+        
+        for pid_str, st in players.items():
+            pid = int(pid_str)
+            if pid == my_id:
+                self.player.x = float(st["x"])
+                self.player.y = float(st["y"])
+                self.player.angle = float(st["angle"])
+                self.scoring.score = int(st.get("score", self.scoring.score))
+            else:
+                rp = self.remote_players.get(pid)
+                if rp is None:
+                    rp = RemotePlayer(pid)
+                    self.remote_players[pid] = rp
+                rp.apply_state(st)
+        
+        # remove disconnected players
+        active = set(int(k) for k in players.keys())
+        for pid in list(self.remote_players.keys()):
+            if pid not in active:
+                del self.remote_players[pid]
+                
+        # Sync bullets
+        self.bullets = [Bullet.from_net(b) for b in snap.get("Bullets", [])]
+        
     def run(self):
         while self.running:
             dt = self.gfx.tick()
@@ -231,8 +301,11 @@ class GameEngine:
             }
             
             offset = self.get_shake_offset(dt)
+            
+            players_to_draw = [self.player] + list(self.remote_players.values())
+            
             self.gfx.render(
-                self.player,
+                players_to_draw,
                 self.npcs,
                 self.bullets,
                 self.particles,
