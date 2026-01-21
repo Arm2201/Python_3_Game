@@ -66,50 +66,54 @@ class NetworkClient:
             self.sock.close()
         except:
             pass
-
+        
     def _reader(self):
         try:
             while self.running:
                 data = self.sock.recv(4096)
                 if not data:
                     break
+
                 for line in recv_lines(self.buffer, data):
                     try:
                         msg = json.loads(line.decode("utf-8"))
                     except json.JSONDecodeError:
                         continue
-                    
+
                     ty = msg.get("type")
-                    if ty == "Welcome":
+
+                    if ty == "welcome":
                         server_protocol = int(msg.get("protocol", -1))
+
                         if server_protocol != EXPECTED_PROTOCOL_VERSION:
+                            print(f"[CLIENT] Protocol mismatch. Server={server_protocol} Client={EXPECTED_PROTOCOL_VERSION}")
                             self.running = False
                             try:
                                 self.sock.close()
                             except:
                                 pass
                             return
-                        
+
                         self.player_id = int(msg["id"])
-                        
                         self.tick_hz = int(msg["tick_hz"])
-                        
                         self.snapshot_hz = int(msg["snapshot_hz"])
-                        
                         self.world_w = int(msg["w"])
-                        
                         self.world_h = int(msg["h"])
-                        
+
                         print(f"[CLIENT] Welcome id={self.player_id}")
-                        
+
                     elif ty == "snapshot":
                         with self.lock:
                             self.snapshots.append(msg)
+
+                    else:
+                        print("[CLIENT] Unknown msg type:", ty, msg)
+
         except (ConnectionResetError, OSError):
             pass
-        
         finally:
             self.running = False
+
 
     def get_latest_snapshot(self):
         with self.lock:

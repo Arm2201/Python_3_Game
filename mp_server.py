@@ -14,7 +14,7 @@ from server_world import World, InputState
 
 # Net Helpers
 def send_json(sock: socket.socket, obj: dict):
-    data = (json.dumps(obj, separators=(",", ".")) + "\n").encode("utf-8")
+    data = (json.dumps(obj, separators=(",", ":")) + "\n").encode("utf-8")
     sock.sendall(data)
     
 def recv_lines(buffer: bytearray, data: bytes):
@@ -37,12 +37,12 @@ class MultiplayerServer:
     - sends world snapshots
     - uses server_world.World for game logic
     """
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str = "0.0.0.0", port: int = 21001):
         self.host = host
         self.port = port
         
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         self.world = World(WORLD_W, WORLD_H)
         
@@ -79,7 +79,7 @@ class MultiplayerServer:
                 
             print(f"[GAME_SERVER] Player {pid} connected from {addr}")
             send_json(conn, {
-                "type": "Welcome",
+                "type": "welcome",
                 "protocol": PROTOCOL_VERSION,
                 "id": pid,
                 "tick_hz": TICK_HZ,
@@ -88,7 +88,7 @@ class MultiplayerServer:
                 "h": WORLD_H,
             })
         
-            threading.Thread(target=self.clients_reader, args=(pid, conn), daemon = True).start()
+            threading.Thread(target=self._client_reader, args=(pid, conn), daemon=True).start()
             
     def _client_reader(self, pid: int, conn: socket.socket):
         buf = self.buffers[pid]
