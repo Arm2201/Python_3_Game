@@ -78,22 +78,31 @@ class Player:
 
 
 class NPC:
-    def __init__(self, x, y, speed_x=200, speed_y=150):
+    def __init__(self, x, y, speed_x=2, speed_y=2, size=20):
         self.x = x
         self.y = y
         self.speed_x = speed_x
         self.speed_y = speed_y
+        self.size = size
 
-    def move(self, game_field, dt):
-        self.x += self.speed_x * dt
-        self.y += self.speed_y * dt
+    def move(self, game_field):
+        self.x += self.speed_x
+        self.y += self.speed_y
 
-        self.x, self.y, x_edge, y_edge = game_field.clamp(self.x, self.y)
+        self.x, self.y, hit_x, hit_y = game_field.clamp(self.x, self.y)
 
-        if x_edge:
-            self.speed_x = -self.speed_x
-        if y_edge:
-            self.speed_y = -self.speed_y
+        if hit_x:
+            self.speed_x *= -1
+        if hit_y:
+            self.speed_y *= -1
+
+    def get_bounding_box(self):
+        return (
+            self.x - self.size // 2,
+            self.y - self.size // 2,
+            self.x + self.size // 2,
+            self.y + self.size // 2
+        )
 
 
 class Bullet:
